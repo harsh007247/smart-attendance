@@ -11,17 +11,19 @@ def enroll_dialogue():
 
         if join_code:
             res= supabase.table('subjects').select('subject_id , name, subject_code').eq('subject_code',join_code).execute()
-            if res:
+            if res.data:
                 subject=res.data[0]
                 student_id=st.session_state.student_data["student_id"]
-            check= supabase.table('subject_students').select('*').eq('subject_id',subject['subject_id']).eq('student_id',student_id).execute()
-            if check.data:
-                st.warning("You Are Already Enrolled In This Program")
+                check= supabase.table('subject_students').select('*').eq('subject_id',subject['subject_id']).eq('student_id',student_id).execute()
+                if check.data:
+                    st.warning("You Are Already Enrolled In This Program")
+                else:
+                    enroll_students_to_subject(student_id,subject['subject_id'])
+                    st.success("Succesfully Enrolled")
+                    time.sleep(1)
+                    st.rerun()
             else:
-                enroll_students_to_subject(student_id,subject['subject_id'])
-                st.success("Succesfully Enrolled")
-                time.sleep(1)
-                st.rerun()
+                st.error("Subject Code Not Found")
         else:
             st.warning("Please Enter a Subject Code")
 

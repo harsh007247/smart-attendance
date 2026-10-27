@@ -45,6 +45,12 @@ def create_subject(subject_code,name,section,teacher_id):
     response=supabase.table("subjects").insert(data).execute()
     return response.data
 
+def delete_subject(subject_id):
+    supabase.table('subject_students').delete().eq('subject_id',subject_id).execute()
+    supabase.table('attendance_login').delete().eq('subject_id',subject_id).execute()
+    response=supabase.table('subjects').delete().eq('subject_id',subject_id).execute()
+    return response.data
+
 def get_teacher_subjects(teacher_id):
     response=supabase.table("subjects").select("*,subject_students(count), attendance_login(timestamp)").eq("teacher_id",teacher_id).execute()
     subjects=response.data
@@ -56,10 +62,23 @@ def get_teacher_subjects(teacher_id):
         sub['total_classes']=unique_Sessions
 
 
-        sub.pop('subject_student',None)
-        sub.pop('attendace_login',None)
+        sub.pop('subject_students',None)
+        sub.pop('attendance_login',None)
 
-    return subjects
+    deduped = {}
+    subjects_sorted = sorted(subjects, key=lambda s: (s.get("total_students", 0), s.get("total_classes", 0)), reverse=True)
+    for sub in subjects_sorted:
+        code_key = (str(sub.get("subject_code", "")).strip().upper(), str(sub.get("section", "")).strip().upper())
+        if code_key not in deduped:
+            deduped[code_key] = sub
+        else:
+            if sub.get("total_students", 0) == 0 and sub.get("total_classes", 0) == 0:
+                try:
+                    delete_subject(sub['subject_id'])
+                except Exception:
+                    pass
+
+    return list(deduped.values())
 
 def enroll_students_to_subject(student_id,subject_id):
     data={"subject_id":subject_id,"student_id":student_id}

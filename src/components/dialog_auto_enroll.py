@@ -34,7 +34,6 @@ def auto_enroll_dialog(subject_code):
         if st.button("No Thanks"):
             st.query_params.clear()
             st.rerun()
-        return
     with col2:
         if st.button('Yes Enroll Now',type='primary',width='stretch'):
             enroll_students_to_subject(student_id,subject['subject_id'])

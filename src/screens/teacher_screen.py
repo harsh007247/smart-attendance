@@ -2,7 +2,7 @@ import streamlit as st
 from src.ui.base_layout import style_background_dashboard,style_base_layout
 from src.components.header import header_dashboard
 from src.components.footer import footer_dashboard
-from src.database.db import teacher_check_exist,create_teacher,teacher_login,get_teacher_subjects
+from src.database.db import teacher_check_exist,create_teacher,teacher_login,get_teacher_subjects,delete_subject
 from src.components.dialogue_create_subject import create_subject_dialogue
 from src.components.dialogue_share_subject import share_subject_dialogue
 from src.components.subject_card import subject_card
@@ -102,23 +102,30 @@ def teacher_tab_manage_subjects():
     subjects=get_teacher_subjects(teacher_id)
 
     if subjects:
-        for sub in subjects:
+        for i, sub in enumerate(subjects):
             stats=[
                 ("👥","STUDENTS",sub["total_students"]),
                 ("🎒","CLASSES",sub["total_classes"])
             ]
-        def share_btn():
-            if st.button(f"Share Code {sub["name"]}",key=f"share__{sub["subject_code"]}",icon=":material/share:"):
-                share_subject_dialogue(sub["name"],sub["subject_code"])
-            st.space()
+            def footer_actions(current_sub=sub, idx=i):
+                sub_id = current_sub.get('subject_id', idx)
+                if st.button(f"Share Code {current_sub['name']}", key=f"share__{sub_id}_{idx}", icon=":material/share:", width='stretch'):
+                    share_subject_dialogue(current_sub["name"], current_sub["subject_code"])
+                if st.button(f"Delete Subject ({current_sub['name']})", key=f"del__{sub_id}_{idx}", type="tertiary", icon=":material/delete_forever:", width='stretch'):
+                    delete_subject(sub_id)
+                    st.toast(f"Deleted {current_sub['name']} successfully")
+                    import time
+                    time.sleep(1)
+                    st.rerun()
+                st.space()
 
-        subject_card(
-            name=sub['name'],
-            code=sub['subject_code'],
-            section=sub['section'],
-            stats=stats,
-            footer_callback=share_btn
-        )
+            subject_card(
+                name=sub['name'],
+                code=sub['subject_code'],
+                section=sub['section'],
+                stats=stats,
+                footer_callback=footer_actions
+            )
     else:
         st.info("NO SUBJECTS FOUND. CREATE ONE ABOVE")
 
@@ -133,7 +140,7 @@ def login_teacher(username,password):
     if teacher:
         st.session_state.user_role='teacher'
         st.session_state.teacher_data=teacher
-        st.session_state.islogged_in=True
+        st.session_state.is_logged_in=True
         return True
     return False
 
